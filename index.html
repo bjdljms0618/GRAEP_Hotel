@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>酒店机器人应用场景</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: 顶栏 → 左侧场景列表 | 中间卡通酒店剖面舞台 + 步骤 | 右侧软硬件拆解面板。单一明亮插画风，不随系统深色切换。 */
+:root{
+  color-scheme:light;
+  --paper:#EEF3F9; --panel:#FFFFFF; --ink:#23304A; --muted:#66738C; --line:#DCE3EE; --soft:#F5F8FC;
+  --teal:#0E8F83; --teal-soft:#E0F3F1; --amber:#D9811E; --amber-soft:#FDF0DF; --focus:#3D8BFF;
+  --f-ui:"Nunito","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.55;margin:0}
+button{font:inherit;color:inherit}
+button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+
+.app{display:grid;grid-template-rows:auto 1fr;min-height:100%}
+.top{display:flex;align-items:center;gap:24px;justify-content:space-between;background:var(--panel);border-bottom:1px solid var(--line);padding-block:12px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));position:sticky;top:env(safe-area-inset-top,0px);z-index:5;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;min-width:0}
+.brand .eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.brand h1{margin:0;font-size:24px;font-weight:900;letter-spacing:.01em}
+.top-r{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
+.lang{display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden}
+.lang button{border:0;background:transparent;padding:4px 14px;font-weight:800;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+.main{display:grid;grid-template-columns:272px minmax(0,1fr) 400px;gap:16px;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;min-width:0}
+
+/* left: scenes */
+.scenes{padding:14px 10px;display:grid;gap:14px;position:sticky;top:84px;max-height:calc(100vh - 100px);overflow:auto}
+.grp h2{font-size:12px;letter-spacing:.08em;color:var(--muted);margin:0 8px 6px;font-weight:800}
+.sc{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;width:100%;text-align:left;border:1.5px solid transparent;background:transparent;border-radius:12px;padding:8px 10px;cursor:pointer}
+.sc:hover{background:var(--soft)}
+.sc[aria-current="true"]{background:var(--teal-soft);border-color:var(--teal)}
+.sc b{font-weight:800;font-size:14.5px;display:block}
+.sc small{color:var(--muted);font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mdot{width:9px;height:9px;border-radius:50%}
+.sc.pair{cursor:default}
+.pills{display:flex;gap:6px;margin-top:6px}
+.pill{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.pill[aria-pressed="true"]{border-color:var(--teal);background:var(--teal);color:#fff}
+
+/* center: stage */
+.stage{padding:12px;display:grid;gap:10px}
+.stage-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:2px 6px;flex-wrap:wrap}
+.stage-top h2{margin:0;font-size:20px;font-weight:900}
+.stage-top p{margin:2px 0 0;color:var(--muted);max-width:80ch}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;padding:2px 10px;border-radius:999px;background:var(--soft);white-space:nowrap}
+.svgwrap{overflow-x:auto;border-radius:14px}
+svg#world{display:block;width:100%;min-width:900px;height:auto;border-radius:14px;background:#BFE3F5;font-family:var(--f-ui);user-select:none}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 4px}
+.btn{border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:5px 12px;font-weight:800;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff;min-width:92px}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:5px 10px;font-family:var(--f-mono);font-size:12.5px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.tog{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;margin-left:4px}
+.hint{margin-left:auto;font-size:12.5px;color:var(--muted)}
+.caption{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;padding:4px 8px}
+.caption .k{font-family:var(--f-mono);font-size:12px;color:var(--teal)}
+.caption h3{margin:0;font-size:18px;font-weight:900}
+.caption p{margin:0;color:var(--ink);opacity:.85;max-width:95ch}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip{border:0;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:700;cursor:pointer}
+.chip.sw{background:var(--teal-soft);color:var(--teal)}
+.chip.hw{background:var(--amber-soft);color:var(--amber)}
+.chip-l{font-size:11.5px;color:var(--muted);align-self:center;margin-right:2px}
+.timeline{display:flex;gap:6px;overflow-x:auto;padding:4px 4px 8px}
+.ts{flex:0 0 auto;display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:5px 10px 5px 6px;cursor:pointer;font-size:13px;font-weight:700;max-width:220px}
+.ts span.n{font-family:var(--f-mono);font-size:11px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--soft);flex:0 0 auto}
+.ts span.t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts.done span.n{background:var(--teal-soft);color:var(--teal)}
+.ts.cur{border-color:var(--teal);background:var(--teal-soft)}
+.ts.cur span.n{background:var(--teal);color:#fff}
+
+/* right: inspector */
+.insp{padding:16px;position:sticky;top:84px;max-height:calc(100vh - 100px);overflow:auto;display:grid;gap:14px;align-content:start}
+.insp h2{margin:0;font-size:20px;font-weight:900;line-height:1.3}
+.insp .sub{color:var(--muted);margin:2px 0 0}
+.back{justify-self:start;border:0;background:none;color:var(--teal);font-weight:800;cursor:pointer;padding:0}
+.tabs{display:flex;border-bottom:1.5px solid var(--line);gap:4px}
+.tabs button{border:0;background:none;padding:6px 12px;font-weight:800;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1.5px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+.hero{background:linear-gradient(#E9F4FB,#F7FAFD);border-radius:14px;border:1px solid var(--line)}
+.hero svg{display:block;width:100%;height:auto;max-height:300px}
+.hs circle.dot{fill:var(--amber);stroke:#fff;stroke-width:1.2;cursor:pointer;transition:r .15s}
+.hs text{font-size:6px;fill:#fff;font-weight:900;text-anchor:middle;pointer-events:none;font-family:var(--f-mono)}
+.hs.on circle.dot{fill:var(--ink)}
+.list{display:grid;gap:8px}
+.item{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+.item .no{width:22px;height:22px;border-radius:50%;background:var(--amber);color:#fff;font-family:var(--f-mono);font-size:11px;display:grid;place-items:center}
+.item.sw .no{background:var(--teal)}
+.item h4{margin:0;font-size:14.5px;font-weight:800;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.item p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.item .spec{font-size:12.5px;margin-top:4px}
+.item .spec b{font-weight:700;color:var(--ink)}
+.item .sup{font-size:12px;margin-top:4px;color:var(--muted);border-top:1px dashed var(--line);padding-top:4px}
+.item.on{border-color:var(--amber);background:var(--amber-soft)}
+.item.sw.on{border-color:var(--teal);background:var(--teal-soft)}
+.now{font-size:11px;font-weight:800;padding:0 7px;border-radius:999px;background:var(--ink);color:#fff}
+.note{font-size:12px;color:var(--muted)}
+.robots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rcard{border:1.5px solid var(--line);background:var(--soft);border-radius:12px;padding:8px;cursor:pointer;text-align:left;display:grid;gap:2px}
+.rcard:hover{border-color:var(--ink)}
+.rcard svg{width:100%;height:84px}
+.rcard b{font-size:13px}
+.rcard small{font-size:11.5px;color:var(--muted)}
+.kv{display:flex;flex-wrap:wrap;gap:6px}
+.sec-t{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:800;margin:0}
+
+/* svg world */
+.lbl{font-size:13px;font-weight:800;fill:var(--ink);opacity:.72}
+.lbl-s{font-size:11px;font-weight:700;fill:var(--ink);opacity:.55}
+.ftag{font-size:14px;font-weight:900;fill:#fff}
+.fac{cursor:pointer}
+.fac:hover > *:first-child{filter:brightness(1.06)}
+.actor{cursor:pointer;transition:opacity .4s}
+.actor .door1{transition:transform .5s;transform-box:fill-box;transform-origin:right center}
+.actor.open .door1{transform:scaleX(.12)}
+.actor .scan{opacity:0;transition:opacity .3s}
+.actor.look .scan{opacity:.55}
+.actor .mist{opacity:0}
+.actor.spray .mist{opacity:1}
+.actor.spray .mist circle{animation:puff 1.4s ease-out infinite}
+.actor.spray .mist circle:nth-child(2){animation-delay:.45s}
+.actor.spray .mist circle:nth-child(3){animation-delay:.9s}
+@keyframes puff{0%{transform:translateY(0) scale(.6);opacity:.9}100%{transform:translateY(-22px) scale(1.4);opacity:0}}
+.actor .uvglow{opacity:0}
+.actor.spray .uvglow{opacity:.55}
+.actor .car{display:none}
+.actor.riding .car{display:block}
+.ring{fill:none;stroke:#FF7A1A;stroke-width:3;animation:ring 1.4s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes ring{0%{opacity:1;transform:scale(.7)}100%{opacity:0;transform:scale(1.5)}}
+.link{fill:none;stroke:#FF7A1A;stroke-width:2.2;stroke-dasharray:6 6;animation:dash .8s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-12}}
+.bubble rect{fill:var(--ink)}
+.bubble text{fill:#fff;font-size:15px;font-weight:800}
+.npc text{font-size:11px;font-weight:800;fill:#fff;text-anchor:middle}
+@media (prefers-reduced-motion:reduce){.ring,.link,.actor.spray .mist circle{animation:none}}
+
+@media (max-width:1280px){.main{grid-template-columns:230px minmax(0,1fr) 340px}}
+@media (max-width:1100px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .scenes,.insp{position:static;max-height:none}
+  .scenes{display:flex;overflow-x:auto;gap:12px}
+  .grp{flex:0 0 auto;min-width:220px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1 id="h1"></h1>
+    </div>
+    <div class="top-r">
+      <div class="legend" id="legend"></div>
+      <div class="lang" role="group" aria-label="Language">
+        <button data-l="zh" aria-pressed="true">中文</button><button data-l="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="main">
+    <nav class="card scenes" id="scenes" aria-label="Scenes"></nav>
+
+    <section class="card stage">
+      <div class="stage-top">
+        <div><h2 id="scTitle"></h2><p id="scSum"></p></div>
+        <span class="badge" id="scBadge"></span>
+      </div>
+      <div class="svgwrap"><svg id="world" viewBox="0 0 1600 900" role="img" aria-label="Hotel cross-section with working robots"></svg></div>
+      <div class="controls">
+        <button class="btn primary" id="play"></button>
+        <button class="btn" id="prev"></button>
+        <button class="btn" id="next"></button>
+        <button class="btn" id="restart"></button>
+        <div class="seg" id="speed"><button data-v="0.5">0.5×</button><button data-v="1" aria-pressed="true">1×</button><button data-v="2">2×</button></div>
+        <label class="tog"><input type="checkbox" id="follow"> <span id="followL"></span></label>
+        <label class="tog"><input type="checkbox" id="others" checked> <span id="othersL"></span></label>
+        <span class="hint" id="hint"></span>
+      </div>
+      <div class="caption" aria-live="polite">
+        <span class="k" id="capK"></span>
+        <h3 id="capT"></h3>
+        <p id="capD"></p>
+        <div class="chips" id="capChips"></div>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+
+    <aside class="card insp" id="insp" aria-label="Inspector"></aside>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+const D = window.WRCO_DATA;
+let L = 'zh';
+try{ const s=localStorage.getItem('wrco-lang'); if(s==='en'||s==='zh') L=s; }catch(e){}
+const T = o => o ? (o[L] ?? o.zh ?? '') : '';
+const UI = {
+  eyebrow:{zh:'全球机器人应用探索计划',en:'Global Robot Application Exploration'},
+  h1:{zh:'酒店场景 · 机器人应用全景',en:'Hotel · Robot Applications'},
+  play:{zh:'暂停',en:'Pause'}, resume:{zh:'播放',en:'Play'},
+  prev:{zh:'上一步',en:'Previous'}, next:{zh:'下一步',en:'Next'}, restart:{zh:'重播本场景',en:'Replay scene'},
+  follow:{zh:'镜头跟随',en:'Follow camera'}, others:{zh:'显示其他机器人',en:'Show other robots'},
+  hint:{zh:'点击机器人、电梯、电话等查看关键技术',en:'Click robots, elevators or phones for key tech'},
+  step:{zh:'步骤',en:'Step'}, sw:{zh:'软件',en:'Software'}, hw:{zh:'硬件',en:'Hardware'},
+  swTab:{zh:'软件关键技术',en:'Software'}, hwTab:{zh:'硬件关键模组',en:'Hardware modules'},
+  spec:{zh:'典型参数（示意）',en:'Typical spec (indicative)'},
+  sup:{zh:'行业供应商',en:'Suppliers'}, supTbd:{zh:'待补充',en:'To be added'},
+  now:{zh:'本步骤',en:'This step'}, back:{zh:'← 返回场景概览',en:'← Scene overview'},
+  robots:{zh:'参与的机器人',en:'Robots in this scene'}, facs:{zh:'涉及的设施',en:'Facilities involved'},
+  techs:{zh:'本场景用到的技术',en:'Technologies used'}, usedIn:{zh:'本场景步骤',en:'Steps in this scene'},
+  clickRobot:{zh:'点击机器人卡片或画面中的机器人，查看软件与硬件拆解。',en:'Click a robot card or a robot in the hotel to see its software and hardware.'},
+  maturityNote:{zh:'成熟度为编者判断，仅供参考。',en:'Maturity is an editorial estimate.'},
+  facility:{zh:'设施',en:'Facility'}, form:{zh:'机器人形态',en:'Robot form'},
+  hsNote:{zh:'橙色编号对应下方模组。',en:'Orange numbers match the modules below.'},
+  done:{zh:'本场景完成，即将重播',en:'Scene complete, replaying'},
+  steps:{zh:'步',en:'steps'}, noHw:{zh:'该设施不需要额外硬件。',en:'No added hardware.'},
+  people:{courier:{zh:'骑手',en:'Courier'},guest:{zh:'客人',en:'Guest'},staff:{zh:'员工',en:'Staff'},stranger:{zh:'可疑人员',en:'Unknown'},clothes:{zh:'待洗衣物',en:'Laundry bag'},folded:{zh:'洗好的衣物',en:'Clean laundry'}},
+};
+
+/* ================= geometry ================= */
+const FL = { '12F':{top:90,base:250}, '8F':{top:250,base:410}, '1F':{top:440,base:640}, 'B1':{top:640,base:800} };
+const SHAFT = { A:735, B:825 };
+const BX0=40, BX1=1520;
+const GUEST_ROOMS = n => [[n+'01',40,330],[n+'02',330,570],[n+'06',900,1090],[n+'08',1090,1280],[n+'10',1280,1440]];
+const FAC = {}; // instance id -> {type,x,y,r}
+const addFac=(id,type,x,y,r=26)=>FAC[id]={type,x,y,r};
+addFac('elev-A','elevator',SHAFT.A,74,24); addFac('elev-B','elevator',SHAFT.B,74,24);
+Object.entries(FL).forEach(([f,v])=>addFac('btn-B-'+f,'callbtn',874,v.base-58,14));
+['12','08'].forEach(n=>{const f=n==='12'?'12F':'8F';GUEST_ROOMS(n).forEach(([id,x0,x1])=>{addFac('phone-'+id,'phone',x0+34,FL[f].base-44,16);addFac('door-'+id,'door',x1-22,FL[f].base-36,22)})});
+addFac('linen-12F','linen',1480,FL['12F'].base-60,30); addFac('linen-8F','linen',1480,FL['8F'].base-60,30);
+addFac('pms','pms',1080,FL['1F'].base-78,24); addFac('shelf','shelf',938,FL['1F'].base-60,36);
+addFac('washer','washer',260,FL.B1.base-40,34); addFac('dryer','dryer',380,FL.B1.base-40,34);
+addFac('linen-B1','linen',975,FL.B1.base-60,40); addFac('dock','dock',1200,FL.B1.base-30,40);
+
+/* ================= drawing helpers ================= */
+const INK='#23304A';
+const sw=`stroke="${INK}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"`;
+const R=(x,y,w,h,fill,rx=0,extra='')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" ${extra}/>`;
+const RS=(x,y,w,h,fill,rx=0,extra='')=>R(x,y,w,h,fill,rx,sw+' '+extra);
+const C=(cx,cy,r,fill,extra='')=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" ${extra}/>`;
+const TX=(x,y,s,cls,extra='')=>`<text x="${x}" y="${y}" class="${cls}" ${extra}>${s}</text>`;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+function bed(x,base,col){return RS(x,base-62,10,58,'#B98A62',3)+RS(x+8,base-34,96,22,'#fff',5)+RS(x+12,base-44,26,12,'#fff',5)+RS(x+40,base-36,64,16,col,5)+R(x+14,base-12,6,10,INK)+R(x+96,base-12,6,10,INK)}
+function windowW(x,y,w,h){return RS(x,y,w,h,'#CDEBFA',4)+`<line x1="${x+w/2}" y1="${y}" x2="${x+w/2}" y2="${y+h}" ${sw}/>`+`<path d="M${x+8} ${y+h-10} q${w/4} -14 ${w/2-8} -4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`}
+function plant(x,base,s=1){return RS(x-9*s,base-20*s,18*s,20*s,'#E07A5F',3)+`<path d="M${x} ${base-20*s} q-16 -18 -6 -38 q8 14 6 38 q2 -26 16 -32 q2 18 -16 32" fill="#5DB36A" ${sw}/>`}
+function phoneG(x,y){return RS(x-14,y-2,28,30,'#C99A6E',4)+RS(x-9,y-12,18,10,'#fff',3)+`<path d="M${x-11} ${y-12} q11 -8 22 0" fill="none" ${sw}/>`}
+
+/* ---------- robots ---------- */
+const FORM = {
+  cabin:{acc:'#14A39A',h:80}, arm1:{acc:'#F28C38',h:98}, arm2:{acc:'#7B61FF',h:118}, tray:{acc:'#FF6B6B',h:94},
+  greeter:{acc:'#3D8BFF',h:98}, cleaner:{acc:'#2BB673',h:44}, patrol:{acc:'#2C5DE5',h:88}, disinf:{acc:'#9B5DE5',h:86}, heavy:{acc:'#F2B33D',h:72}
+};
+const ARMS = {
+  arm1:{ S:[[20,-58]], idle:[[[32,-42],[28,-28]]], reach:[[[44,-60],[64,-46]]], press:[[[38,-78],[58,-94]]], fin:[[[40,-62],[54,-56]]] },
+  arm2:{ S:[[-22,-84],[22,-84]], idle:[[[-30,-64],[-28,-48]],[[30,-64],[28,-48]]], reach:[[[-38,-80],[-54,-68]],[[38,-80],[54,-68]]], press:[[[-38,-80],[-54,-68]],[[38,-80],[54,-68]]], fin:[[[-30,-74],[-12,-66]],[[30,-74],[12,-66]]] },
+};
+function wheels(dx=14){return `<ellipse cx="${-dx}" cy="-3" rx="7" ry="4.5" fill="${INK}"/><ellipse cx="${dx}" cy="-3" rx="7" ry="4.5" fill="${INK}"/>`}
+function eyes(cx,cy,acc,gap=5){return R(cx-gap-3,cy-3.5,6,7,acc,3)+R(cx+gap-3,cy-3.5,6,7,acc,3)}
+function robotSVG(form){
+  const a=FORM[form].acc; let s='';
+  if(form==='cabin'){
+    s+=wheels()+RS(-26,-78,52,74,'#fff',16)+R(-22,-14,44,5,INK,2)+RS(-18,-73,36,18,INK,7)+eyes(0,-64,a)
+      +R(-19,-49,38,17,'#2D3A57',4)+`<g class="door1">${RS(-19,-49,38,17,'#E6F5F4',4)}</g>`+RS(-19,-29,38,13,'#E6F5F4',4)
+      +C(20,-60,2.6,a)+`<line x1="18" y1="-78" x2="22" y2="-86" ${sw}/>`+C(22,-87,2.5,a)+R(-26,-53,52,3,a);
+  }else if(form==='arm1'){
+    s+=wheels()+RS(-26,-62,52,58,'#fff',14)+R(-22,-14,44,5,INK,2)+R(-19,-50,26,20,'#2D3A57',4)+`<g class="door1">${RS(-19,-50,26,20,'#FDEBDC',4)}</g>`
+      +RS(-22,-26,16,8,INK,3)+RS(-4,-78,8,16,'#fff',2)+RS(-16,-98,32,21,'#fff',8)+RS(-11,-93,22,11,INK,5)+eyes(0,-87.5,a,4.5)+R(-26,-36,52,3,a)
+      +`<path class="scan" d="M10 -88 L90 -110 L90 -60 Z" fill="${a}"/>`
+      +`<polyline class="ao" points="" fill="none" stroke="${INK}" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><polyline class="ai" points="" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`
+      +C(20,-58,5.5,a,sw)+`<g class="grip"><path d="M-4 0 L-6 9 M4 0 L6 9" ${sw} fill="none"/>${C(0,0,4,a,sw)}</g>`;
+  }else if(form==='arm2'){
+    s+=wheels(16)+RS(-28,-26,56,22,'#fff',8)+R(-24,-14,48,5,INK,2)+RS(-6,-52,12,27,'#E7E9F2',2)+RS(-22,-92,44,42,'#fff',12)+R(-12,-82,24,9,a,4)
+      +RS(-4,-98,8,7,'#fff',1)+RS(-15,-118,30,22,'#fff',9)+RS(-11,-113,22,11,INK,5)+eyes(0,-107.5,a,4.5)
+      +`<path class="scan" d="M0 -106 L-60 -40 L60 -40 Z" fill="${a}"/>`
+      +[0,1].map(i=>`<polyline class="ao ao${i}" points="" fill="none" stroke="${INK}" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><polyline class="ai ai${i}" points="" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`).join('')
+      +C(-22,-84,5.5,a,sw)+C(22,-84,5.5,a,sw)+`<g class="grip grip0">${C(0,0,5,'#fff',sw)}</g><g class="grip grip1">${C(0,0,5,'#fff',sw)}</g>`;
+  }else if(form==='tray'){
+    s+=wheels(12)+RS(-22,-20,44,16,'#fff',7)+R(-18,-11,36,4,INK,2)+RS(-5,-76,10,58,'#fff',2)
+      +[-34,-52,-70].map(y=>RS(-25,y,50,6,a,3)).join('')+RS(-16,-95,32,19,'#fff',8)+RS(-12,-91,24,11,INK,5)+eyes(0,-85.5,a,4.5);
+  }else if(form==='greeter'){
+    s+=`<path d="M-22 -6 L-18 -62 Q0 -70 18 -62 L22 -6 Z" fill="#fff" ${sw}/>`+R(-21,-12,42,5,INK,2)
+      +RS(-14,-57,28,22,INK,4)+R(-10,-52,20,3,a,1.5)+R(-10,-46,14,3,a,1.5)+R(-10,-40,17,3,a,1.5)
+      +`<ellipse cx="-22" cy="-42" rx="4.5" ry="10" fill="#fff" ${sw}/><ellipse cx="22" cy="-42" rx="4.5" ry="10" fill="#fff" ${sw}/>`
+      +C(0,-82,15,'#fff',sw)+RS(-10,-88,20,11,INK,5)+eyes(0,-82.5,a,4)+C(-15,-82,3,a)+C(15,-82,3,a)
+      +`<path class="scan" d="M0 -82 L-70 -20 L70 -20 Z" fill="${a}"/>`;
+  }else if(form==='cleaner'){
+    s+=wheels(20)+RS(-34,-36,68,32,'#fff',12)+R(-34,-22,68,5,a)+RS(-8,-44,16,8,INK,4)+RS(-26,-31,14,6,'#BFE3F5',3)+RS(4,-32,18,8,INK,3)+eyes(13,-28,a,4)
+      +`<g class="brush" transform="translate(30,-6)">${C(0,0,7,'#fff',sw)}<path d="M-7 0 L7 0 M0 -7 L0 7" ${sw}/></g>`
+      +`<path class="scan" d="M30 -20 L120 -40 L120 0 Z" fill="${a}"/>`;
+  }else if(form==='patrol'){
+    s+=wheels(14)+RS(-24,-52,48,48,'#fff',20)+R(-24,-30,48,5,a)+R(-12,-58,12,6,'#FF5A5F',3,sw)+R(0,-58,12,6,'#3D8BFF',3,sw)
+      +R(-3,-76,6,18,INK)+C(0,-80,10,'#fff',sw)+C(0,-80,4.5,INK)+RS(8,-70,9,8,a,2)+R(-20,-13,40,5,INK,2)
+      +`<path class="scan" d="M0 -80 L-90 -30 L-90 10 Z" fill="${a}"/>`;
+  }else if(form==='disinf'){
+    s+=wheels(12)+RS(-20,-76,40,72,'#fff',12)+`<rect class="uvglow" x="-30" y="-70" width="60" height="56" rx="20" fill="${a}"/>`
+      +RS(-15,-64,6,42,a,3)+RS(9,-64,6,42,a,3)+RS(-6,-72,12,7,INK,3)+RS(-8,-86,16,10,'#fff',4)+R(-17,-12,34,4,INK,2)
+      +`<g class="mist">${C(-6,-94,5,'#D6F0FF')}${C(4,-96,6,'#D6F0FF')}${C(0,-92,4,'#D6F0FF')}</g>`;
+  }else if(form==='heavy'){
+    s+=wheels(26)+RS(-40,-72,80,66,'#fff',12)+R(-40,-72,80,9,a,6)+R(-32,-58,44,40,'#2D3A57',5)+`<g class="door1">${RS(-32,-58,44,40,'#FFF6DF',5)}${C(6,-38,2.5,INK)}</g>`
+      +RS(18,-58,16,12,INK,3)+eyes(26,-52,a,3.5)+R(-36,-13,72,5,INK,2);
+  }
+  return s;
+}
+const ITEM = {
+  food:   `<path d="M-9 -16 h18 l2 16 h-22 Z" fill="#D9A066" ${sw}/><path d="M-4 -16 q4 -8 8 0" fill="none" ${sw}/>`,
+  clothes:`<rect x="-11" y="-18" width="22" height="18" rx="6" fill="#7FB3E8" ${sw}/><path d="M-4 -18 l4 -5 l4 5" fill="none" ${sw}/>`,
+  folded: `<rect x="-12" y="-6" width="24" height="6" rx="2" fill="#7FB3E8" ${sw}/><rect x="-12" y="-12" width="24" height="6" rx="2" fill="#F6C76B" ${sw}/><rect x="-12" y="-18" width="24" height="6" rx="2" fill="#fff" ${sw}/>`,
+  linen:  `<rect x="-13" y="-8" width="26" height="8" rx="2" fill="#fff" ${sw}/><rect x="-13" y="-16" width="26" height="8" rx="2" fill="#fff" ${sw}/><line x1="-13" y1="-12" x2="13" y2="-12" stroke="#3D8BFF" stroke-width="2"/>`,
+  dirty:  `<path d="M-11 0 q-3 -14 4 -18 l7 -3 l7 3 q7 4 4 18 Z" fill="#B7BDC9" ${sw}/>`,
+  box:    `<rect x="-10" y="-16" width="20" height="16" rx="2" fill="#E9B872" ${sw}/><line x1="0" y1="-16" x2="0" y2="0" ${sw}/>`,
+  dish:   `<ellipse cx="0" cy="-2" rx="13" ry="3" fill="#fff" ${sw}/><path d="M-9 -3 a9 9 0 0 1 18 0 Z" fill="#E4E8EF" ${sw}/>`,
+  luggage:`<rect x="-10" y="-20" width="20" height="20" rx="4" fill="#E07A5F" ${sw}/><path d="M-4 -20 v-4 h8 v4" fill="none" ${sw}/>`,
+};
+function personSVG(k){
+  const col={courier:'#FFC72C',guest:'#5B8DEF',staff:'#23304A',stranger:'#4B4F58'}[k]||'#5B8DEF';
+  let s=`<rect x="-9" y="-30" width="7" height="30" rx="3" fill="${INK}"/><rect x="2" y="-30" width="7" height="30" rx="3" fill="${INK}"/>`
+   +RS(-14,-66,28,40,col,10)+C(0,-78,12,'#F2C8A0',sw);
+  if(k==='courier') s+=`<path d="M-13 -80 a13 13 0 0 1 26 0 Z" fill="#FFC72C" ${sw}/>`+R(-10,-58,20,6,'#2BB673',2);
+  else if(k==='staff') s+=`<path d="M-12 -84 q12 -12 24 0 q-12 -6 -24 0" fill="${INK}"/>`+`<path d="M-6 -66 l6 8 l6 -8" fill="#fff" ${sw}/>`;
+  else if(k==='stranger') s+=`<path d="M-14 -76 a14 15 0 0 1 28 0 v6 h-6 v-4 a8 8 0 0 0 -16 0 v4 h-6 Z" fill="#4B4F58" ${sw}/>`;
+  else s+=`<path d="M-12 -82 q12 -14 24 0 q-6 -5 -12 -3 q-6 -2 -12 3" fill="#5A3E2B"/>`;
+  return s;
+}
+
+/* ---------- building ---------- */
+function drawBuilding(){
+  let s='';
+  // sky & ground
+  s+=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9DAF2"/><stop offset="1" stop-color="#E4F4FB"/></linearGradient>
+  <pattern id="soil" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#C9A27E"/><circle cx="6" cy="7" r="2" fill="#B88E68"/><circle cx="16" cy="16" r="1.6" fill="#B88E68"/></pattern>
+  <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#DCE5F0"/><line x1="0" y1="0" x2="0" y2="10" stroke="#C3D0E0" stroke-width="4"/></pattern></defs>`;
+  s+=R(0,0,1600,900,'url(#sky)');
+  s+=`<g fill="#fff" opacity=".9"><ellipse cx="180" cy="40" rx="60" ry="16"/><ellipse cx="230" cy="30" rx="40" ry="16"/><ellipse cx="1290" cy="34" rx="70" ry="15"/><ellipse cx="1340" cy="26" rx="40" ry="14"/></g>`;
+  s+=C(1550,48,22,'#FFD45C');
+  s+=R(0,640,1600,260,'url(#soil)')+R(0,632,1600,10,'#8CCB7E');
+  // street right
+  s+=R(1520,628,80,12,'#9AA5B5')+`<path d="M1560 628 v-58" stroke="#7A5A3A" stroke-width="8"/>`+C(1560,560,26,'#5DB36A',sw)+C(1545,575,16,'#6DC07A',sw);
+  // building shell
+  s+=RS(BX0-10,62,BX1-BX0+20,748,'#E8EEF6',6);
+  // roof
+  s+=RS(BX0-14,58,BX1-BX0+28,32,'#3C4A6E',6)+RS(1180,28,140,30,'#fff',6)+`<text x="1250" y="50" text-anchor="middle" font-weight="900" font-size="18" fill="${INK}">HOTEL</text>`
+    +RS(260,40,60,18,'#C3CCDA',3)+RS(340,44,40,14,'#C3CCDA',3);
+  // floors
+  const floorBG={'12F':'#FFE7D1','8F':'#FFE7D1','1F':'#FFF1C9','B1':'#DDEBF7'};
+  Object.entries(FL).forEach(([f,v])=>{ s+=R(BX0,v.top,BX1-BX0,v.base-v.top,floorBG[f]); });
+  // band 2F-7F
+  s+=R(BX0,410,BX1-BX0,30,'url(#hatch)')+TX(800,430,L==='zh'?'2F – 7F  客房层（省略）':'2F – 7F  Guest floors (omitted)','lbl-s','text-anchor="middle"');
+  // guest floors
+  ['12','08'].forEach(n=>{
+    const f=n==='12'?'12F':'8F', {top,base}=FL[f];
+    GUEST_ROOMS(n).forEach(([id,x0,x1],k)=>{
+      const w=x1-x0, col=['#F6C76B','#7FB3E8','#E99AA8','#9AD3A8','#C6B3F2'][k];
+      s+=R(x0,top,w,base-top,k%2?'#FFE0C7':'#FFE9D6')+windowW(x0+w/2-30,top+22,60,46)+bed(x0+56,base,col)
+        +phoneG(x0+34,base-44)
+        +`<g class="fac" data-fac="door-${id}">${RS(x1-34,base-74,24,72,'#B98A62',3)}${C(x1-14,base-38,2.5,INK)}</g>`
+        +`<g class="fac" data-fac="phone-${id}">${R(x0+20,base-58,28,22,'transparent')}</g>`
+        +RS(x0+10,top+10,46,18,'#fff',4)+TX(x0+33,top+24,id,'lbl','text-anchor="middle" style="opacity:.9"')
+        +`<line x1="${x1}" y1="${top}" x2="${x1}" y2="${base}" ${sw}/>`;
+    });
+    s+=R(570,top,130,base-top,'#EEF2F8')+plant(600,base)+TX(635,top+24,L==='zh'?'电梯厅':'Lift lobby','lbl','text-anchor="middle"');
+    s+=R(1440,top,80,base-top,'#E6EAF2')+`<g class="fac" data-fac="linen-${f}">${RS(1452,base-112,58,108,'#fff',3)}${[0,1,2].map(i=>R(1458,base-104+i*34,46,8,'#7FB3E8',2)+R(1458,base-94+i*34,46,8,'#fff',2,sw)).join('')}</g>`
+      +TX(1480,top+22,L==='zh'?'工作间':'Service','lbl-s','text-anchor="middle"');
+    s+=R(860,top,40,base-top,'#EEF2F8');
+  });
+  // 1F
+  { const {top,base}=FL['1F'];
+    // kitchen
+    s+=R(BX0,top,260,200,'#E6F2EA')+TX(56,top+24,L==='zh'?'后厨 · 洗碗区':'Kitchen · Dish room','lbl')
+      +RS(60,base-62,110,58,'#C3CCDA',4)+RS(70,base-78,30,16,'#fff',3)+RS(115,base-80,34,18,'#E07A5F',4)+RS(56,top+40,120,26,'#AEB8C8',4)
+      +RS(180,base-56,70,52,'#fff',3)+[0,1,2].map(i=>`<ellipse cx="${200+i*14}" cy="${base-44}" rx="5" ry="10" fill="#E4E8EF" ${sw}/>`).join('')
+      +RS(260,base-110,40,8,'#B98A62',2);
+    // restaurant
+    s+=R(300,top,400,200,'#FFE3E3')+TX(316,top+24,L==='zh'?'全日餐厅':'All-day dining','lbl');
+    [[400,'1'],[490,'2'],[600,'3']].forEach(([x,n])=>{s+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${top+40}" stroke="${INK}" stroke-width="2"/>`+`<path d="M${x-14} ${top+52} h28 l-6 -12 h-16 Z" fill="#F6C76B" ${sw}/>`
+      +RS(x-30,base-46,60,8,'#fff',3)+R(x-3,base-38,6,38,INK)+RS(x-46,base-34,14,30,'#E99AA8',4)+RS(x+32,base-34,14,30,'#E99AA8',4)+TX(x,base-54,n,'lbl-s','text-anchor="middle"')});
+    // shafts lobby area right
+    s+=R(860,top,40,200,'#FFF6DD');
+    // shelf
+    s+=R(870,top,120,200,'#FFF6DD')+`<g class="fac" data-fac="shelf">${RS(902,base-104,72,100,'#fff',4)}${[0,1,2].map(i=>R(906,base-74+i*32,64,4,INK)).join('')}
+      <g transform="translate(920,${base-76})">${ITEM.food}</g><g transform="translate(952,${base-44})">${ITEM.food}</g><g transform="translate(922,${base-12})">${ITEM.box}</g></g>`
+      +TX(882,top+24,L==='zh'?'外卖货架':'Delivery shelf','lbl');
+    // front desk + PMS
+    s+=R(990,top,180,200,'#FFF1C9')+TX(1080,top+24,L==='zh'?'前台':'Front desk','lbl','text-anchor="middle"')
+      +RS(1000,top+40,160,40,'#fff',6)+TX(1080,top+66,'RECEPTION','lbl-s','text-anchor="middle"')
+      +RS(1000,base-50,160,46,'#B98A62',6)+R(1000,base-50,160,8,'#E0B98A',4)
+      +`<g class="fac" data-fac="pms">${RS(1062,base-96,36,26,INK,3)}${R(1067,base-91,26,16,'#7FD3C9',2)}${R(1077,base-70,6,20,INK)}</g>`;
+    // luggage
+    s+=TX(1220,top+24,L==='zh'?'行李区':'Luggage','lbl','text-anchor="middle"')+RS(1185,base-70,70,6,'#B98A62',2)+R(1190,base-64,4,64,INK)+R(1246,base-64,4,64,INK)
+      +`<g transform="translate(1205,${base-70})">${ITEM.luggage}</g><g transform="translate(1232,${base-70})">${ITEM.luggage}</g>`;
+    // lobby
+    s+=TX(1350,top+24,L==='zh'?'大堂':'Lobby','lbl','text-anchor="middle"')+RS(1300,base-36,90,30,'#7FB3E8',10)+RS(1300,base-52,90,18,'#7FB3E8',8)
+      +`<path d="M1350 ${top} v28" stroke="${INK}" stroke-width="2"/>`+C(1350,top+40,14,'#FFD45C',sw)+plant(1410,base);
+    // gate
+    s+=R(1430,top,90,200,'#E9F5FB')+RS(1440,base-130,72,126,'#CDEBFA',6)+`<line x1="1476" y1="${base-130}" x2="1476" y2="${base-4}" ${sw}/>`
+      +TX(1476,top+24,L==='zh'?'正门':'Entrance','lbl','text-anchor="middle"');
+  }
+  // B1
+  { const {top,base}=FL.B1;
+    s+=TX(56,top+24,L==='zh'?'B1 洗衣房':'B1 Laundry','lbl');
+    s+=RS(100,base-46,90,8,'#fff',3)+R(110,base-38,6,38,INK)+R(174,base-38,6,38,INK)+TX(145,base-54,L==='zh'?'分拣台':'Sorting','lbl-s','text-anchor="middle"');
+    s+=`<g class="fac" data-fac="washer">${[225,262].map(x=>RS(x,base-74,34,72,'#fff',6)+C(x+17,base-34,11,'#BFE3F5',sw)+R(x+6,base-66,22,5,'#7FD3C9',2)).join('')}</g>`+TX(260,base-82,L==='zh'?'洗衣机':'Washers','lbl-s','text-anchor="middle"');
+    s+=`<g class="fac" data-fac="dryer">${[345,382].map(x=>RS(x,base-74,34,72,'#F3F0FF',6)+C(x+17,base-34,11,'#E3DBFF',sw)+R(x+6,base-66,22,5,'#C6B3F2',2)).join('')}</g>`+TX(380,base-82,L==='zh'?'烘干机':'Dryers','lbl-s','text-anchor="middle"');
+    s+=RS(450,base-46,100,8,'#fff',3)+R(458,base-38,6,38,INK)+R(536,base-38,6,38,INK)+`<g transform="translate(500,${base-46})">${ITEM.folded}</g>`+TX(500,base-70,L==='zh'?'折叠台':'Folding','lbl-s','text-anchor="middle"');
+    s+=RS(590,base-96,50,92,'#fff',3)+R(594,base-60,42,4,INK)+TX(615,base-104,L==='zh'?'复核出货':'Check-out','lbl-s','text-anchor="middle"');
+    s+=R(860,top,40,base-top,'#E3ECF6');
+    s+=R(870,top,210,base-top,'#E9E6F5')+TX(886,top+24,L==='zh'?'布草仓':'Linen store','lbl')
+      +`<g class="fac" data-fac="linen-B1">${RS(910,base-110,130,106,'#fff',3)}${[0,1,2].map(i=>R(916,base-100+i*34,118,8,'#7FB3E8',2)+R(916,base-90+i*34,118,8,'#fff',2,sw)).join('')}</g>`;
+    s+=R(1080,top,240,base-top,'#E4F3EA')+TX(1096,top+24,L==='zh'?'充电区':'Charging','lbl')
+      +`<g class="fac" data-fac="dock">${R(1090,base-90,220,88,'transparent')}${[1105,1155,1205,1255,1295].map(x=>RS(x-8,base-46,16,44,'#fff',4)+`<path d="M${x+1} ${base-38} l-5 9 h5 l-3 9" fill="none" stroke="#2BB673" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</g>`;
+    s+=R(1320,top,200,base-top,'#E6EAF2')+TX(1336,top+24,L==='zh'?'设备间':'Equipment','lbl')+RS(1440,base-110,60,106,'#C3CCDA',4)+`<path d="M1330 ${top+44} h100 v40" fill="none" stroke="#9AA5B5" stroke-width="6"/>`;
+  }
+  // slabs + floor tags
+  Object.entries(FL).forEach(([f,v])=>{ s+=R(BX0-10,v.base-2,BX1-BX0+20,8,'#3C4A6E',2); s+=RS(BX0+6,v.top+(f==='1F'?40:36),40,22,'#3C4A6E',11)+TX(BX0+26,v.top+(f==='1F'?56:52),f,'ftag','text-anchor="middle"'); });
+  s+=R(BX0-10,v0(),BX1-BX0+20,8,'#3C4A6E',2);
+  // shafts
+  ['A','B'].forEach(k=>{
+    const x=SHAFT[k];
+    s+=`<g class="fac" data-fac="elev-${k}">`+RS(x-35,62,70,746,'#3C4A6E',4)+RS(x-20,62,40,22,'#FFD66B',4)+`<path d="M${x+14} 62 v-12" ${sw}/>`+C(x+14,48,3.5,'#FF7A1A',sw)
+      +TX(x,78,'IoT','lbl-s','text-anchor="middle" style="opacity:1;fill:'+INK+'"');
+    Object.values(FL).forEach(v=>{s+=RS(x-26,v.base-108,52,104,'#C9D3E2',3)+`<line x1="${x}" y1="${v.base-108}" x2="${x}" y2="${v.base-4}" ${sw}/>`+RS(x-14,v.base-124,28,12,INK,3)+`<path d="M${x-5} ${v.base-115} l5 -5 l5 5" fill="none" stroke="#7FD3C9" stroke-width="2"/>`;});
+    s+='</g>';
+    s+=TX(x,v0()+30,k==='A'?(L==='zh'?'客梯':'Guest lift'):(L==='zh'?'服务梯':'Service lift'),'lbl-s','text-anchor="middle"');
+  });
+  Object.entries(FL).forEach(([f,v])=>{ s+=`<g class="fac" data-fac="btn-B-${f}">${RS(866,v.base-70,16,24,'#fff',3)}${C(874,v.base-62,3,'#FF7A1A')}${C(874,v.base-53,3,'#9AA5B5')}</g>`; });
+  return s;
+}
+function v0(){return 58}
+
+/* ================= runtime ================= */
+const SCENES=D.SCENES;
+const S={focus:null,playing:true,speed:1,follow:false,others:true,cam:[0,0,1600,900],t:0,insp:{kind:'overview'}};
+const svg=document.getElementById('world');
+svg.innerHTML=`<g id="bg"></g><g id="actors"></g><g id="npcs"></g><g id="fx"></g><g id="bubble" class="bubble" style="display:none"><rect rx="10" height="32"/><path/><text/></g>`;
+const $=id=>document.getElementById(id);
+const G={bg:$('bg'),actors:$('actors'),npcs:$('npcs'),fx:$('fx'),bub:$('bubble')};
+const baseY=f=>FL[f].base;
+
+// precompute start states
+SCENES.forEach(sc=>{
+  const st={}; Object.entries(sc.actors).forEach(([id,a])=>st[id]={floor:a.floor,x:a.x,carry:null});
+  sc.starts=[];
+  sc.steps.forEach(step=>{
+    sc.starts.push(JSON.parse(JSON.stringify(st)));
+    const a=st[step.a]; const sh=sc.actors[step.a].shaft;
+    (step.go||[]).forEach(g=>{ if(typeof g==='number') a.x=g; else { a.x=SHAFT[sh]; a.floor=g; } });
+    if(step.c) Object.entries(step.c).forEach(([k,v])=>st[k].carry=v);
+  });
+  sc.rt={i:0,phase:'hold',segs:[],holdT:0,H:0,carried:false,done:false,doneT:0,actors:{}};
+  sc.techSW=new Set(); sc.techHW=new Set(); sc.steps.forEach(s=>{(s.sw||[]).forEach(x=>sc.techSW.add(x));(s.hw||[]).forEach(x=>sc.techHW.add(x))});
+});
+
+// actor DOM
+function buildActors(){
+  G.actors.innerHTML='';
+  SCENES.forEach(sc=>Object.entries(sc.actors).forEach(([id,a])=>{
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','actor'); g.dataset.scene=sc.id; g.dataset.actor=id; g.dataset.form=a.form;
+    const h=FORM[a.form].h;
+    g.innerHTML=`<title>${esc(T(a.name))}</title><g class="car">${RS(-38,-134,76,134,'#FFD66B',5)}${R(-30,-126,60,118,'#FFE7A3',3)}</g><g class="rb">${robotSVG(a.form)}</g><g class="item"></g>`;
+    G.actors.appendChild(g);
+    sc.rt.actors[id]=Object.assign(sc.rt.actors[id]||{}, {el:g, h, form:a.form, armK:0, dx:0});
+  }));
+}
+function resetScene(sc,i){
+  const rt=sc.rt; rt.done=false; rt.doneT=0;
+  Object.entries(sc.starts[i]).forEach(([id,v])=>Object.assign(rt.actors[id],{floor:v.floor,x:v.x,y:baseY(v.floor),carry:v.carry,riding:false}));
+  startStep(sc,i);
+}
+function startStep(sc,i){
+  const rt=sc.rt, st=sc.steps[i], a=rt.actors[st.a], sh=sc.actors[st.a].shaft;
+  rt.i=i; rt.holdT=0; rt.carried=false; rt.segs=[];
+  let x=a.x, f=a.floor;
+  (st.go||[]).forEach(g=>{
+    if(typeof g==='number'){ if(g!==x) rt.segs.push({t:'walk',x0:x,x1:g}); x=g; }
+    else { const sx=SHAFT[sh]; if(sx!==x) rt.segs.push({t:'walk',x0:x,x1:sx}); x=sx;
+      rt.segs.push({t:'wait',d:st.p==='press'?1500:600,press:st.p==='press'}); rt.segs.push({t:'ride',y0:baseY(f),y1:baseY(g),to:g}); rt.segs.push({t:'wait',d:500}); f=g; }
+  });
+  rt.phase=rt.segs.length?'move':'hold';
+  rt.H=st.go?(st.h||1000):(st.h||2200);
+  if(sc.id===S.focus) onFocusStep();
+}
+function applyCarry(sc){const st=sc.steps[sc.rt.i]; if(st.c) Object.entries(st.c).forEach(([k,v])=>sc.rt.actors[k].carry=v); sc.rt.carried=true;}
+function update(sc,dt){
+  const rt=sc.rt;
+  if(rt.done){ rt.doneT+=dt; if(rt.doneT>2800) resetScene(sc,0); return; }
+  const st=sc.steps[rt.i], a=rt.actors[st.a];
+  if(rt.phase==='move'){
+    let budget=dt;
+    while(budget>0&&rt.segs.length){
+      const s=rt.segs[0];
+      if(s.t==='walk'){ const v=0.14; const d=s.x1-a.x, step=v*budget; a.dx=Math.sign(d);
+        if(Math.abs(d)<=step){a.x=s.x1;budget-=Math.abs(d)/v;rt.segs.shift();} else {a.x+=Math.sign(d)*step;budget=0;} }
+      else if(s.t==='wait'){ s.e=(s.e||0)+budget; if(s.e>=s.d){budget=s.e-s.d;rt.segs.shift();} else budget=0; }
+      else if(s.t==='ride'){ a.riding=true; const v=0.17; const d=s.y1-a.y, step=v*budget;
+        if(Math.abs(d)<=step){a.y=s.y1;a.floor=s.to;a.riding=false;budget-=Math.abs(d)/v;rt.segs.shift();} else {a.y+=Math.sign(d)*step;budget=0;} }
+    }
+    if(!rt.segs.length){ rt.phase='hold'; rt.holdT=0; a.dx=0; }
+  } else {
+    rt.holdT+=dt;
+    if(!rt.carried && rt.holdT>=Math.min(rt.H*0.45,1400)) applyCarry(sc);
+    if(rt.holdT>=rt.H){ if(!rt.carried) applyCarry(sc);
+      if(rt.i<sc.steps.length-1) startStep(sc,rt.i+1); else { rt.done=true; rt.doneT=0; if(sc.id===S.focus) onFocusStep(); } }
+  }
+}
+
+/* ---------- per-frame render ---------- */
+const lerp=(a,b,k)=>a+(b-a)*k;
+function armPoints(form,k,pose,t){
+  const A=ARMS[form]; if(!A) return null;
+  let tgt=A[pose]||A.idle;
+  if(pose==='fold'){ const o=(Math.sin(t/380)+1)/2; tgt=A.reach.map((arm,i)=>arm.map((p,j)=>[lerp(p[0],A.fin[i][j][0],o),lerp(p[1],A.fin[i][j][1],o)])); }
+  return A.S.map((s,i)=>{const pts=[s, ...A.idle[i].map((p,j)=>[lerp(p[0],tgt[i][j][0],k),lerp(p[1],tgt[i][j][1],k)])]; return pts;});
+}
+function renderActors(now){
+  SCENES.forEach(sc=>{
+    const rt=sc.rt, st=sc.steps[rt.i], focused=sc.id===S.focus;
+    Object.entries(rt.actors).forEach(([id,a])=>{
+      const g=a.el; const active=st.a===id && !rt.done;
+      const moving=active&&rt.phase==='move';
+      const seg=rt.segs[0];
+      let pose=active?st.p:null;
+      const armPose=(pose==='press'&&st.go)?(moving&&seg&&seg.t==='wait'&&seg.press?'press':null):((pose==='reach'||pose==='press'||pose==='fold')&&(rt.phase==='hold'||!st.go)?pose:null);
+      const cls=['actor'];
+      if(a.riding) cls.push('riding');
+      if(active&&rt.phase==='hold'&&(pose==='open')) cls.push('open');
+      if(active&&rt.phase==='hold'&&pose==='look') cls.push('look');
+      if(active&&(pose==='spray')) cls.push('spray');
+      g.setAttribute('class',cls.join(' '));
+      g.style.opacity=focused?1:(S.others?.3:0);
+      g.style.pointerEvents=(focused||S.others)?'auto':'none';
+      const bob=moving&&!a.riding?Math.sin(now/90)*1.2:0;
+      g.setAttribute('transform',`translate(${a.x.toFixed(1)},${(a.y+bob).toFixed(1)})`);
+      // arms
+      const target=armPose?1:0; a.armK=lerp(a.armK,target,Math.min(1,0.006*16));
+      const arms=armPoints(a.form,a.armK,armPose||'idle',now);
+      if(arms){ arms.forEach((pts,i)=>{const p=pts.map(q=>q.join(',')).join(' ');
+        const sel=a.form==='arm2'?i:''; const ao=g.querySelector(a.form==='arm2'?'.ao'+i:'.ao'), ai=g.querySelector(a.form==='arm2'?'.ai'+i:'.ai');
+        ao.setAttribute('points',p); ai.setAttribute('points',p);
+        const w=pts[pts.length-1]; const gr=g.querySelector(a.form==='arm2'?'.grip'+i:'.grip'); gr.setAttribute('transform',`translate(${w[0]},${w[1]})`); }); }
+      if(a.form==='cleaner'){ const b=g.querySelector('.brush'); const spin=(active&&pose==='clean')?(now/3)%360:0; b.setAttribute('transform',`translate(30,-6) rotate(${spin})`); }
+      // item
+      if(a._carry!==a.carry){ a._carry=a.carry; const it=g.querySelector('.item');
+        it.innerHTML=a.carry?`<g transform="translate(${a.form==='tray'?0:0},${a.form==='tray'?-58:-(a.h+6)})">${ITEM[a.carry]||''}</g>`:''; }
+    });
+  });
+}
+function renderFocus(now){
+  const sc=SCENES.find(s=>s.id===S.focus); if(!sc) return;
+  const rt=sc.rt, st=sc.steps[rt.i], a=rt.actors[st.a];
+  // npc
+  const n=st.n; let html='';
+  if(n&&!rt.done){
+    let x, y=baseY(n.floor||a.floor);
+    if(n.follow){ const fa=rt.actors[n.follow]; const off=(fa.dx<0?48:-48)||48; S.npcX=S.npcX==null?fa.x+off:lerp(S.npcX,fa.x+(fa.dx>0?-48:48),0.08); x=S.npcX; y=baseY(fa.floor); }
+    else { x=n.x; S.npcX=x; }
+    html=ITEM[n.k]?`<g class="npc" transform="translate(${x.toFixed(1)},${y})"><g transform="scale(1.6)">${ITEM[n.k]}</g><g transform="translate(0,-50)">${RS(-34,-12,68,18,INK,9)}<text y="2">${esc(T(UI.people[n.k]))}</text></g></g>`
+      :`<g class="npc" transform="translate(${x.toFixed(1)},${y})">${personSVG(n.k)}<g transform="translate(0,-102)">${RS(-24,-12,48,18,INK,9)}<text y="2">${esc(T(UI.people[n.k]))}</text></g></g>`;
+  } else S.npcX=null;
+  if(G.npcs._h!==html){G.npcs.innerHTML=html;G.npcs._h=html;}
+  // fx
+  let fx='';
+  if(st.f&&FAC[st.f]&&!rt.done){ const f=FAC[st.f]; fx+=`<circle class="ring" cx="${f.x}" cy="${f.y}" r="${f.r}"/><circle cx="${f.x}" cy="${f.y}" r="${f.r}" fill="none" stroke="#FF7A1A" stroke-width="2.5"/>`;
+    const t=FAC[st.f].type; if((t==='elevator'||t==='phone'||t==='pms')&&!a.riding){ fx+=`<path class="link" d="M${a.x} ${a.y-a.h} Q ${(a.x+f.x)/2} ${Math.min(a.y-a.h,f.y)-60} ${f.x} ${f.y}"/>`; } }
+  G.fx.innerHTML=fx;
+  // bubble
+  const txt=rt.done?T(UI.done):T(st.b);
+  const b=G.bub, tEl=b.querySelector('text');
+  if(tEl.textContent!==txt){ tEl.textContent=txt; b._w=null; }
+  b.style.display='';
+  if(!b._w){ try{b._w=tEl.getComputedTextLength()+26;}catch(e){b._w=txt.length*15+26;} b.querySelector('rect').setAttribute('width',b._w); }
+  const w=b._w, [cx,cy,cw]=S.cam; let bx=Math.max(cx+6,Math.min(a.x-w/2,cx+cw-w-6)); let by=a.y-a.h-(a.carry?34:0)-48;
+  b.querySelector('rect').setAttribute('x',bx); b.querySelector('rect').setAttribute('y',by);
+  tEl.setAttribute('x',bx+13); tEl.setAttribute('y',by+21);
+  const tx=Math.max(bx+14,Math.min(a.x,bx+w-14));
+  b.querySelector('path').setAttribute('d',`M${tx-7} ${by+31} L${tx} ${by+40} L${tx+7} ${by+31} Z`); b.querySelector('path').setAttribute('fill',INK);
+  // camera
+  let tgt=[0,0,1600,900];
+  if(S.follow){ const w2=860,h2=w2*9/16; let x=a.x-w2/2, y=a.y-h2*0.62; x=Math.max(0,Math.min(1600-w2,x)); y=Math.max(0,Math.min(900-h2,y)); tgt=[x,y,w2,h2]; }
+  S.cam=S.cam.map((v,i)=>lerp(v,tgt[i],0.06));
+  svg.setAttribute('viewBox',S.cam.map(v=>v.toFixed(1)).join(' '));
+}
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(60,now-last); last=now;
+  if(S.playing){ SCENES.forEach(sc=>update(sc,dt*S.speed)); }
+  renderActors(now); renderFocus(now);
+  requestAnimationFrame(frame);
+}
+
+/* ================= UI ================= */
+function renderStatic(){
+  $('h1').textContent=T(UI.h1);
+  document.title=L==='zh'?'酒店机器人应用场景':'Hotel Robot Applications';
+  $('legend').innerHTML=Object.values(D.MATURITY).map(m=>`<span><i style="background:${m.color}"></i>${esc(T(m.name))}</span>`).join('');
+  $('prev').textContent=T(UI.prev); $('next').textContent=T(UI.next); $('restart').textContent=T(UI.restart);
+  $('followL').textContent=T(UI.follow); $('othersL').textContent=T(UI.others); $('hint').textContent=T(UI.hint);
+  document.querySelectorAll('.lang button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===L));
+  document.documentElement.lang=L==='zh'?'zh-CN':'en';
+  G.bg.innerHTML=drawBuilding();
+  SCENES.forEach(sc=>Object.entries(sc.actors).forEach(([id,a])=>{const t=sc.rt.actors[id].el.querySelector('title'); if(t) t.textContent=T(a.name);}));
+  renderScenes(); renderPlay();
+}
+function renderScenes(){
+  let h='';
+  D.GROUPS.forEach(gr=>{
+    h+=`<div class="grp"><h2>${esc(T(gr.name))}</h2>`;
+    const list=SCENES.filter(s=>s.group===gr.id); let pairDone=false;
+    list.forEach(sc=>{
+      if(sc.id.startsWith('delivery-')){ if(pairDone) return; pairDone=true;
+        const lo=SCENES.find(s=>s.id==='delivery-low'), hi=SCENES.find(s=>s.id==='delivery-high'); const cur=S.focus===lo.id||S.focus===hi.id;
+        h+=`<div class="sc pair" aria-current="${cur}"><div><b>${L==='zh'?'外卖配送':'Food Delivery'}</b><small>${esc(T(D.ROBOTS.cabin.name))} / ${esc(T(D.ROBOTS.arm1.name))}</small>
+          <div class="pills">${[lo,hi].map(s=>`<button class="pill" data-go="${s.id}" aria-pressed="${S.focus===s.id}"><span class="mdot" style="background:${D.MATURITY[s.maturity].color}"></span>${esc(T(s.short))}</button>`).join('')}</div></div></div>`;
+        return; }
+      const forms=[...new Set(Object.values(sc.actors).map(a=>T(D.ROBOTS[a.form].name)))].join(' + ');
+      h+=`<button class="sc" data-go="${sc.id}" aria-current="${S.focus===sc.id}"><span><b>${esc(T(sc.name))}</b><small>${esc(forms)}</small></span><span class="mdot" style="background:${D.MATURITY[sc.maturity].color}" title="${esc(T(D.MATURITY[sc.maturity].name))}"></span></button>`;
+    });
+    h+='</div>';
+  });
+  $('scenes').innerHTML=h;
+}
+function renderPlay(){ $('play').textContent=S.playing?T(UI.play):T(UI.resume); }
+function focusScene(){ return SCENES.find(s=>s.id===S.focus); }
+function onFocusStep(){ renderCaption(); renderTimeline(); if(S.insp.kind!=='overview') renderInspector(); }
+function renderSceneHead(){
+  const sc=focusScene(); const m=D.MATURITY[sc.maturity];
+  $('scTitle').textContent=T(sc.name); $('scSum').textContent=T(sc.summary);
+  $('scBadge').innerHTML=`<span class="mdot" style="background:${m.color}"></span>${esc(T(m.name))}`;
+}
+function renderCaption(){
+  const sc=focusScene(), rt=sc.rt, st=sc.steps[rt.i];
+  $('capK').textContent=`${T(UI.step)} ${rt.i+1} / ${sc.steps.length} · ${T(sc.actors[st.a].name)}`;
+  $('capT').textContent=T(st.t); $('capD').textContent=T(st.d);
+  $('capChips').innerHTML=`<span class="chip-l">${T(UI.sw)}</span>`+(st.sw||[]).map(k=>`<button class="chip sw" data-sw="${k}">${esc(T(D.SOFTWARE[k].name))}</button>`).join('')
+    +`<span class="chip-l" style="margin-left:8px">${T(UI.hw)}</span>`+(st.hw||[]).map(k=>`<button class="chip hw" data-hw="${k}">${esc(T(D.MODULES[k].name))}</button>`).join('');
+}
+function renderTimeline(){
+  const sc=focusScene(), i=sc.rt.i;
+  $('timeline').innerHTML=sc.steps.map((st,k)=>`<button class="ts ${k<i||sc.rt.done?'done':''} ${k===i&&!sc.rt.done?'cur':''}" data-k="${k}" title="${esc(T(st.t))}"><span class="n">${k+1}</span><span class="t">${esc(T(st.t))}</span></button>`).join('');
+  const cur=$('timeline').querySelector('.cur'); if(cur){ const tl=$('timeline'); tl.scrollLeft=cur.offsetLeft-tl.clientWidth/2+cur.clientWidth/2; }
+}
+
+/* ---------- inspector ---------- */
+function heroSVG(form,hsList,hl){
+  const h=FORM[form].h; const pad=60;
+  let s=`<svg viewBox="${-95} ${-h-36} 190 ${h+46}" aria-hidden="true"><ellipse cx="0" cy="2" rx="46" ry="6" fill="#23304A" opacity=".12"/><g class="actor">${robotSVG(form)}</g>`;
+  if(hsList) hsList.forEach(([k,[x,y]],i)=>{ s+=`<g class="hs ${hl===k?'on':''}" data-hs="${k}"><circle class="dot" cx="${x}" cy="${y}" r="${hl===k?6.5:5.2}"/><text x="${x}" y="${y+2}">${i+1}</text></g>`; });
+  return s+'</svg>';
+}
+function fillArms(root,form){ const arms=armPoints(form,0,'idle',0); if(!arms) return; arms.forEach((pts,i)=>{const p=pts.map(q=>q.join(',')).join(' ');
+  root.querySelectorAll(form==='arm2'?'.ao'+i+',.ai'+i:'.ao,.ai').forEach(e=>e.setAttribute('points',p)); const w=pts[pts.length-1]; const gr=root.querySelector(form==='arm2'?'.grip'+i:'.grip'); if(gr) gr.setAttribute('transform',`translate(${w[0]},${w[1]})`);}); }
+function stepsUsing(sc,key,kind){ return sc.steps.map((s,i)=>((kind==='sw'?s.sw:s.hw)||[]).includes(key)?i+1:0).filter(Boolean); }
+function hwItem(k,i,on,sc){
+  const m=D.MODULES[k]; const sup=m.suppliers&&m.suppliers.length?m.suppliers.map(x=>esc(T(x.name)||x.name)).join('、'):T(UI.supTbd);
+  return `<div class="item ${on?'on':''}" data-hk="${k}"><span class="no">${i}</span><div><h4>${esc(T(m.name))}${on?`<span class="now">${T(UI.now)}</span>`:''}</h4><p>${esc(T(m.role))}</p>
+    <div class="spec"><b>${T(UI.spec)}：</b>${esc(T(m.spec))}</div><div class="sup">${T(UI.sup)}：${esc(sup)}</div></div></div>`;
+}
+function swItem(k,i,on,sc){
+  const t=D.SOFTWARE[k]; const used=sc?stepsUsing(sc,k,'sw'):[];
+  return `<div class="item sw ${on?'on':''}" data-sk="${k}"><span class="no">${i}</span><div><h4>${esc(T(t.name))}${on?`<span class="now">${T(UI.now)}</span>`:''}</h4><p>${esc(T(t.desc))}</p>
+    ${used.length?`<div class="sup">${T(UI.usedIn)}：${used.join(', ')}</div>`:''}</div></div>`;
+}
+function renderInspector(){
+  const box=$('insp'), sc=focusScene(), st=sc.steps[sc.rt.i]; const I=S.insp;
+  if(I.kind==='overview'){
+    const facs=[...new Set(sc.steps.map(s=>s.f).filter(Boolean).map(f=>FAC[f]&&FAC[f].type).filter(Boolean))];
+    box.innerHTML=`<div><h2>${esc(T(sc.name))}</h2><p class="sub">${esc(T(sc.summary))}</p></div>
+      <p class="sec-t">${T(UI.robots)}</p>
+      <div class="robots">${Object.entries(sc.actors).map(([id,a])=>`<button class="rcard" data-robot="${id}">${heroSVG(a.form)}<b>${esc(T(a.name))}</b><small>${esc(T(D.ROBOTS[a.form].name))}</small></button>`).join('')}</div>
+      <p class="note">${T(UI.clickRobot)}</p>
+      ${facs.length?`<p class="sec-t">${T(UI.facs)}</p><div class="kv">${facs.map(t=>`<button class="chip hw" data-factype="${t}">${esc(T(D.FACILITY_TYPES[t].name))}</button>`).join('')}</div>`:''}
+      <p class="sec-t">${T(UI.techs)}</p>
+      <div class="kv">${[...sc.techSW].map(k=>`<button class="chip sw" data-sw="${k}">${esc(T(D.SOFTWARE[k].name))}</button>`).join('')}</div>
+      <div class="kv">${[...sc.techHW].map(k=>`<button class="chip hw" data-hw="${k}">${esc(T(D.MODULES[k].name))}</button>`).join('')}</div>
+      <p class="note">${T(UI.maturityNote)}</p>`;
+    box.querySelectorAll('.rcard').forEach(c=>fillArms(c,sc.actors[c.dataset.robot].form));
+    return;
+  }
+  if(I.kind==='robot'){
+    const a=sc.actors[I.actor]; if(!a){S.insp={kind:'overview'};return renderInspector();}
+    const R0=D.ROBOTS[a.form]; const hs=Object.entries(R0.hw);
+    const isActive=st.a===I.actor;
+    const curHW=isActive?(st.hw||[]):[], curSW=isActive?(st.sw||[]):[];
+    box.innerHTML=`<button class="back" data-back>${T(UI.back)}</button>
+      <div><p class="sec-t">${T(UI.form)}</p><h2>${esc(T(R0.name))}</h2><p class="sub">${esc(T(a.name))} · ${esc(T(R0.tagline))}</p></div>
+      <div class="hero">${heroSVG(a.form,I.tab==='hw'?hs:null,I.hl)}</div>
+      <div class="tabs" role="tablist"><button role="tab" data-tab="hw" aria-selected="${I.tab==='hw'}">${T(UI.hwTab)} · ${hs.length}</button><button role="tab" data-tab="sw" aria-selected="${I.tab==='sw'}">${T(UI.swTab)} · ${R0.sw.length}</button></div>
+      ${I.tab==='hw'?`<p class="note">${T(UI.hsNote)}</p><div class="list">${hs.map(([k],i)=>hwItem(k,i+1,curHW.includes(k)||I.hl===k,sc)).join('')}</div>`
+        :`<div class="list">${R0.sw.map((k,i)=>swItem(k,i+1,curSW.includes(k)||I.hl===k,sc)).join('')}</div>`}`;
+    fillArms(box.querySelector('.hero'),a.form);
+    if(I.hl){ const el=box.querySelector(`[data-hk="${I.hl}"],[data-sk="${I.hl}"]`); if(el) el.scrollIntoView({block:'nearest'}); }
+    return;
+  }
+  if(I.kind==='fac'){
+    const F=D.FACILITY_TYPES[I.type];
+    box.innerHTML=`<button class="back" data-back>${T(UI.back)}</button>
+      <div><p class="sec-t">${T(UI.facility)}</p><h2>${esc(T(F.name))}</h2><p class="sub">${esc(T(F.desc))}</p></div>
+      <div class="tabs"><button data-tab="hw" aria-selected="${I.tab!=='sw'}">${T(UI.hwTab)} · ${F.hw.length}</button><button data-tab="sw" aria-selected="${I.tab==='sw'}">${T(UI.swTab)} · ${F.sw.length}</button></div>
+      ${I.tab!=='sw'?(F.hw.length?`<div class="list">${F.hw.map((k,i)=>hwItem(k,i+1,I.hl===k,sc)).join('')}</div>`:`<p class="note">${T(UI.noHw)}</p>`)
+        :`<div class="list">${F.sw.map((k,i)=>swItem(k,i+1,I.hl===k,sc)).join('')}</div>`}`;
+  }
+}
+function openRobot(actor,tab='hw',hl=null){ S.insp={kind:'robot',actor,tab,hl}; renderInspector(); }
+function openFac(type,tab='hw',hl=null){ S.insp={kind:'fac',type,tab,hl}; renderInspector(); }
+function pause(){ S.playing=false; renderPlay(); }
+
+function openTech(kind,key){
+  const sc=focusScene(), st=sc.steps[sc.rt.i];
+  const list=kind==='hw'?'hw':'sw';
+  // prefer the step's robot, then any robot in the scene, then a facility
+  const actorIds=[st.a,...Object.keys(sc.actors).filter(x=>x!==st.a)];
+  for(const id of actorIds){ const R0=D.ROBOTS[sc.actors[id].form]; if(kind==='hw'?R0.hw[key]:R0.sw.includes(key)) return openRobot(id,list,key); }
+  const facTypes=[...new Set([st.f,...sc.steps.map(s=>s.f)].filter(Boolean).map(f=>FAC[f]&&FAC[f].type).filter(Boolean))];
+  for(const t of facTypes){ const F=D.FACILITY_TYPES[t]; if((kind==='hw'?F.hw:F.sw).includes(key)) return openFac(t,list,key); }
+  const any=Object.entries(D.FACILITY_TYPES).find(([,F])=>(kind==='hw'?F.hw:F.sw).includes(key)); if(any) return openFac(any[0],list,key);
+}
+
+/* ---------- events ---------- */
+function setScene(id){
+  const sc=SCENES.find(s=>s.id===id)||SCENES[0];
+  S.focus=sc.id; S.insp={kind:'overview'}; S.npcX=null;
+  resetScene(sc,0);
+  renderScenes(); renderSceneHead(); renderCaption(); renderTimeline(); renderInspector();
+}
+$('scenes').addEventListener('click',e=>{const b=e.target.closest('[data-go]'); if(b) location.hash=b.dataset.go;});
+$('timeline').addEventListener('click',e=>{const b=e.target.closest('[data-k]'); if(!b) return; const sc=focusScene(); resetScene(sc,+b.dataset.k); S.npcX=null;});
+$('capChips').addEventListener('click',e=>{const b=e.target.closest('.chip'); if(!b) return; pause(); b.dataset.sw?openTech('sw',b.dataset.sw):openTech('hw',b.dataset.hw);});
+$('insp').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.closest('[data-back]')){S.insp={kind:'overview'};return renderInspector();}
+  const tab=t.closest('[data-tab]'); if(tab){S.insp.tab=tab.dataset.tab;S.insp.hl=null;return renderInspector();}
+  const rc=t.closest('[data-robot]'); if(rc){pause();return openRobot(rc.dataset.robot);}
+  const ft=t.closest('[data-factype]'); if(ft){pause();return openFac(ft.dataset.factype);}
+  const ch=t.closest('.chip'); if(ch){pause();return ch.dataset.sw?openTech('sw',ch.dataset.sw):openTech('hw',ch.dataset.hw);}
+  const hs=t.closest('[data-hs]'); if(hs){S.insp.hl=hs.dataset.hs;renderInspector();}
+});
+$('insp').addEventListener('mouseover',e=>{const it=e.target.closest('[data-hk]'); const hero=$('insp').querySelector('.hero'); if(!hero) return;
+  hero.querySelectorAll('.hs').forEach(h=>{const on=it&&h.dataset.hs===it.dataset.hk; h.classList.toggle('on',on); h.querySelector('circle').setAttribute('r',on?6.5:5.2);});});
+svg.addEventListener('click',e=>{
+  const ac=e.target.closest('.actor[data-actor]');
+  if(ac){ pause(); if(ac.dataset.scene!==S.focus){ history.replaceState(null,'','#'+ac.dataset.scene); setScene(ac.dataset.scene);} openRobot(ac.dataset.actor); return; }
+  const f=e.target.closest('[data-fac]'); if(f&&FAC[f.dataset.fac]){ pause(); openFac(FAC[f.dataset.fac].type); }
+});
+$('play').onclick=()=>{S.playing=!S.playing; renderPlay();};
+$('prev').onclick=()=>{const sc=focusScene(); resetScene(sc,Math.max(0,sc.rt.i-1)); S.npcX=null;};
+$('next').onclick=()=>{const sc=focusScene(); if(sc.rt.i<sc.steps.length-1){resetScene(sc,sc.rt.i+1); S.npcX=null;}};
+$('restart').onclick=()=>{resetScene(focusScene(),0); S.playing=true; renderPlay();};
+$('speed').addEventListener('click',e=>{const b=e.target.closest('[data-v]'); if(!b) return; S.speed=+b.dataset.v; $('speed').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));});
+$('follow').onchange=e=>{S.follow=e.target.checked;};
+$('others').onchange=e=>{S.others=e.target.checked;};
+document.querySelectorAll('.lang button').forEach(b=>b.onclick=()=>{L=b.dataset.l; try{localStorage.setItem('wrco-lang',L)}catch(e){}; G.bub._w=null; G.bub.querySelector('text').textContent=''; renderStatic(); renderSceneHead(); renderCaption(); renderTimeline(); renderInspector();});
+document.addEventListener('keydown',e=>{ if(e.code==='Space'&&!e.target.closest('input,button,textarea')){e.preventDefault();S.playing=!S.playing;renderPlay();} });
+addEventListener('hashchange',()=>setScene(location.hash.slice(1)));
+
+/* ---------- boot ---------- */
+buildActors();
+SCENES.forEach((sc,k)=>{ resetScene(sc,0); /* stagger so the hotel looks busy from the start */ for(let t=0;t<k*2300;t+=50) update(sc,50); });
+renderStatic();
+setScene(location.hash.slice(1)||'delivery-low');
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){S.playing=false;renderPlay();}
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{G.bub._w=null;G.bub.querySelector('text').textContent='';});
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
